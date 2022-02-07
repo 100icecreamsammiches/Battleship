@@ -8,7 +8,7 @@ canvas.style.marginRight = "auto";
 
 renderGrid(1, 2, context);
 
-ships = [[5, 5, 0, -1, 3], [1, 1, 1, 0, 2]]
+var ships = [[5, 5, 0, -1, 3], [1, 1, 1, 0, 2]]
 
 function renderGrid(topGrid, bottomGrid, context){
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -38,7 +38,8 @@ function renderGrid(topGrid, bottomGrid, context){
         for (var j = 0; j < i[4]; j++){
             context.beginPath();
             context.fillStyle = "#FF00FF";
-            context.fillRect((x+j*i[3])*tileWidth, (y*2)
+            context.fillRect((i[0]+(j*i[2]))*tileWidth, (9+i[1]+(j*i[3]))*tileHeight, tileWidth, tileHeight);
+            context.stroke();
         }
     }
 }

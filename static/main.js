@@ -6,18 +6,19 @@ canvas.height = window.innerHeight * .9;
 canvas.style.marginLeft = "auto";
 canvas.style.marginRight = "auto";
 
-renderGrid(1, 2, context);
-
 var ships = [[5, 5, 0, -1, 3], [1, 1, 1, 0, 2]]
 
-function renderGrid(topGrid, bottomGrid, context){
+var grid = Array(10).fill(Array(10).fill(0))
+
+renderGrid(grid, context);
+function renderGrid(grid, context){
     context.clearRect(0, 0, canvas.width, canvas.height);
-	tileWidth = canvas.width / 8;
-	tileHeight = canvas.height / 17;
+	tileWidth = canvas.width / 10;
+	tileHeight = canvas.height / 21;
     const fontSize = tileWidth / 1.5;
     context.font = fontSize + 'px serif';
-	for (var y = 0; y < 8; y++){
-		for (var x = 0; x < 8; x++){
+	for (var y = 0; y < 10; y++){
+		for (var x = 0; x < 10; x++){
 			context.beginPath();
             context.fillStyle = "#FFFFFF";
 		    context.strokeStyle = "#000000";
@@ -25,8 +26,8 @@ function renderGrid(topGrid, bottomGrid, context){
 			context.stroke();
 		}
 	}
-    for (var y = 9; y < 17; y++){
-		for (var x = 0; x < 8; x++){
+    for (var y = 11; y < 21; y++){
+		for (var x = 0; x < 10; x++){
 			context.beginPath();
             context.fillStyle = "#FFFFFF";
 		    context.strokeStyle = "#000000";
@@ -38,7 +39,7 @@ function renderGrid(topGrid, bottomGrid, context){
         for (var j = 0; j < i[4]; j++){
             context.beginPath();
             context.fillStyle = "#FF00FF";
-            context.fillRect((i[0]+(j*i[2]))*tileWidth, (9+i[1]+(j*i[3]))*tileHeight, tileWidth, tileHeight);
+            context.fillRect((i[0]+(j*i[2]))*tileWidth, (11+i[1]+(j*i[3]))*tileHeight, tileWidth, tileHeight);
             context.stroke();
         }
     }

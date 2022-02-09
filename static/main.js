@@ -6,12 +6,12 @@ canvas.height = window.innerHeight * .9;
 canvas.style.marginLeft = "auto";
 canvas.style.marginRight = "auto";
 
-var shipsPlaced = 0;
-var ships = [1]
-var shipPlacement = [5, 5, 0, -1, 3]
+var ships = [1];
+var shipPlacement = [5, 5, 0, 2];
 
-var topGrid = Array(10).fill(Array(10).fill(0))
-var bottomGrid = Array(10).fill(Array(10).fill(0))
+var topGrid = Array(10).fill(Array(10).fill(0));
+var bottomGrid = Array(10).fill(Array(10).fill(0));
+var rots = [[1, 0], [0, 1], [-1, 0], [0,-1]];
 
 renderGrid(topGrid, bottomGrid, context);
 
@@ -40,17 +40,20 @@ function renderGrid(topGrid, bottomGrid, context){
 		}
 	}
     if (ships.length < 6){
-        for (var j = 0; j < shipPlacement[4]; j++){
+        for (var j = 0; j < shipPlacement[3]; j++){
             context.beginPath();
             context.fillStyle = "#FF00FF";
-            context.fillRect((shipPlacement[0]+(j*shipPlacement[2]))*tileWidth, (11+shipPlacement[1]+(j*shipPlacement[3]))*tileHeight, tileWidth, tileHeight);
+            context.fillRect((shipPlacement[0]+(j*rots[shipPlacement[2]][0]))*tileWidth, (11+shipPlacement[1]+(j*rots[shipPlacement[2]][1]))*tileHeight, tileWidth, tileHeight);
             context.stroke();
         }
     }
 }
 
+document.onkeydown = keyPress;
+document.onmousemove = mouseMove;
 
-canvas.addEventListener("mousemove", e=>{
+
+function mouseMove(e){
     var bounding = canvas.getBoundingClientRect();
     mousePos = {
 		x: e.clientX - bounding.left,
@@ -59,8 +62,15 @@ canvas.addEventListener("mousemove", e=>{
 
     if (mousePos.x >= 0 && mousePos.x <= canvas.width && mousePos.y >= canvas.height/(21/11) && mousePos.y  <= canvas.height) {
         shipPlacement[0] = Math.floor(mousePos.x * (10 / canvas.width));
-        shipPlacement[1] = Math.floor((mousePos.y-canvas.height/(21/11)) * (11 / canvas.height));
-        console.log(mousePos.y * (11 / canvas.height))
+        shipPlacement[1] = Math.floor(mousePos.y * (21 / canvas.height)) - 11;
+        document.getElementById("testing").innerHTML = shipPlacement;
         renderGrid(topGrid, bottomGrid, context);
     }
-})
+}
+
+function keyPress(e){
+    if (e.key=="r"){
+        shipPlacement[2] = (shipPlacement[2] + 1) % 4
+        renderGrid(topGrid, bottomGrid, context);
+    }
+}

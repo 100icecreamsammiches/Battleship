@@ -12,7 +12,8 @@ var place = [5, 5, 0, 2];
 
 var topGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
 var bottomGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
-var rots = [[1, 0], [0, 1], [-1, 0], [0,-1]];
+const rots = [[1, 0], [0, 1], [-1, 0], [0,-1]];
+const colors = ["#33AAFF", "#AAAAAA", "#FF0000"];
 
 renderGrid(topGrid, bottomGrid, context);
 
@@ -34,15 +35,7 @@ function renderGrid(topGrid, bottomGrid, context){
     for (var y = 11; y < 21; y++){
 		for (var x = 0; x < 10; x++){
 			context.beginPath();
-			if (bottomGrid[y-11][x] == 2){
-				context.fillStyle = "#FF0000";
-			}
-			else if (bottomGrid[y-11][x] == 1){
-				context.fillStyle = "#AAAAAA";
-			}
-			else{
-            	context.fillStyle = "#33AAFF";
-			}
+            context.fillStyle = colors[bottomGrid[y-11][x]];
 		    context.strokeStyle = "#000000";
 			context.fillRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
 			context.strokeRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
@@ -125,4 +118,14 @@ function range(start, end){
 		out.push(i)
 	}
 	return out;
+}
+
+function hit(x, y){
+    if (bottomGrid[y][x] == 1){
+        bottomGrid[y][x] = 2;
+        renderField();
+    }
+    else(){
+        bottomGrid[y][x] = 3;
+    }
 }

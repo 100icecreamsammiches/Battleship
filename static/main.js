@@ -67,7 +67,7 @@ function renderGrid(){
                 context.stroke();
     		}
         }
-        document.getElementById("test").innerHTML = sunk;
+        document.getElementById("test").innerHTML = `Ships sunk: ${sunk} <br>Enemy ships sunk: ${enemySunk} <br>Enemy Ready: ${enemyReady}<br>Is turn: ${isTurn}`;
     }
 }
 
@@ -114,7 +114,7 @@ function click(e){
 			x: Math.floor((e.clientX - bounding.left) * (10 / canvas.width)),
 			y: Math.floor((e.clientY - bounding.top) * (21 / canvas.height))
 		}
-		if (ships.length < 5){
+		if (ships.length < 5 && isTurn){
 			var tempShip = []
 			for (var j = 0; j < place[3]; j++){
 				tempShip.push([place[0]+(j*rots[place[2]][0]), place[1]+(j*rots[place[2]][1])])
@@ -146,6 +146,7 @@ function click(e){
         else if(mousePos.y < 11 && isTurn){
             sendTurn(mousePos.x, mousePos.y);
             lastHit = [mousePos.x, mousePos.y];
+            renderGrid();
         }
 	}
 }
@@ -162,7 +163,6 @@ function hit(x, y){
     var hit = bottomGrid[y][x] == 1
     if (hit){
         bottomGrid[y][x] = 2;
-        topGrid[y][x] = 2;
         console.log(JSON.stringify([x,y]))
         for (var i = 0; i < ships.length; i++){
             for(var j = 0; j < ships[i].length; j++){
@@ -178,19 +178,18 @@ function hit(x, y){
     }
     else if(bottomGrid[y][x] == 0){
         bottomGrid[y][x] = 3;
-        topGrid[y][x] = 1;
     }
     renderGrid();
-    isTurn = false;
     return {"hit": hit, "sunk": sunk}
 }
 
 function sendReady(){
-    socket.emit("ready")
+    socket.emit("ready", "ready")
 }
 
 function sendTurn(x, y){
     socket.emit("turn", JSON.stringify([x, y]))
+    isTurn = false;
 }
 
 
@@ -215,6 +214,7 @@ socket.on("start", function (data){
 })
 
 socket.on("ready", function (data){
+    console.log("ready recieved, length:" + ships.length)
     if (ships.length == 5){
         isTurn = first;
     }
@@ -235,6 +235,7 @@ socket.on("result", function (data){
     else{
         topGrid[lastHit[1]][lastHit[0]] = 1;
     }
+    console.log(data.hit)
     enemySunk = data.sunk;
     renderGrid();
 })

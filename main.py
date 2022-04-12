@@ -1,3 +1,4 @@
+from xml.etree.ElementInclude import include
 from flask import Flask, render_template, url_for
 from flask_socketio import SocketIO, emit
 import json
@@ -34,7 +35,11 @@ def connect():
 
 @socketio.event
 def turn(json):
-    emit("turn", json, broadcast=True)
+    emit("turn", json, broadcast=True, include_self=False)
+    
+@socketio.event
+def result(json):
+    emit("result", json, broadcast=True, include_self=False)
 
 @socketio.event
 def init(data):

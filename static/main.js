@@ -14,6 +14,7 @@ var place = [5, 5, 0, 2];
 var sunk = [false, false, false, false, false];
 var enemySunk = [false, false, false, false, false];
 var lastHit = [0, 0];
+var enemyReady = false;
 
 var isTurn = false;
 var first = null;
@@ -134,13 +135,17 @@ function click(e){
 				}
                 if (ships.length == 5){
                     place[3] = 1;
+                    if (enemyReady){
+                        isTurn = first;
+                    }
+                    sendReady();
                 }
 				renderGrid(topGrid, bottomGrid, context);
 			}
 		}
         else if(mousePos.y < 11 && isTurn){
             sendTurn(mousePos.x, mousePos.y);
-            lastHit = [x,y];
+            lastHit = [mousePos.x, mousePos.y];
         }
 	}
 }
@@ -181,7 +186,7 @@ function hit(x, y){
 }
 
 function sendReady(){
-    socket.emit("ready", JSON.stringify(bottomGrid))
+    socket.emit("ready")
 }
 
 function sendTurn(x, y){
@@ -191,8 +196,8 @@ function sendTurn(x, y){
 
 socket.on("start", function (data){
     if (first == null){
-        data = JSON.parse(data).turn;
-        console.log(!!data.turn);
+        data = JSON.parse(data);
+        console.log(data.turn);
         first = !!data.turn;
         if (first){
             document.getElementById("test").innerHTML = "Waiting on opponent...";
@@ -213,6 +218,7 @@ socket.on("ready", function (data){
     if (ships.length == 5){
         isTurn = first;
     }
+    enemyReady = true;
 })
 
 socket.on("turn", function (data) {

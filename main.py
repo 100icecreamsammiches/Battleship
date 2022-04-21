@@ -3,8 +3,6 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import json
 import secrets
 import logging
-from time import sleep
-import asyncio
 
 async_mode = None
 
@@ -18,8 +16,6 @@ log.setLevel(logging.ERROR)
 
 rooms = {}
 users = {}
-#connected = False
-connected = {}
 
 @app.route("/play")
 def main():
@@ -97,28 +93,10 @@ def disconnect():
 @socketio.event
 def ack():
     pass
-    #connected[request.sid] = True
-"""
-def checkConnected(user):
-    emit("checkConnected", to=user)
-    asyncio.sleep(1)
-    if not (user in connected.keys()):
-        print("not connected")
-        connected[user] = False
-"""
 
 def purgeConnections():
-    """
-    global connected
-    connected = {}
-    loop = asyncio.new_event_loop()
-    result = loop.run_in_executor(None, asyncio.gather, map(checkConnected, users.keys()))
-    print(result)"""
     for user in users.keys():
         emit("checkConnected", to=user)
-        #if not connected[user]:
-         #   rooms[users[user]] -= 1
-    #print(connected)
         
 
 if __name__ == "__main__":

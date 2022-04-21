@@ -1,75 +1,126 @@
 const canvas = document.getElementById("main-canvas");
 const context = canvas.getContext("2d");
 var bounding = canvas.getBoundingClientRect();
+var room = false;
+var enemyJoined = false;
 
 canvas.width = window.innerHeight * .45;
 canvas.height = window.innerHeight * .9;
 canvas.style.marginLeft = "auto";
 canvas.style.marginRight = "auto";
+var params = new URLSearchParams(window.location.search);
+var leftBound = (window.innerWidth / 2) - (canvas.width/2);
+var won = null;
 
 var socket = io({"forceNew": true});
 
+var shareLink = window.location.href
+
+socket.on("connect", function (){
+    if (!params.has("room")){
+        socket.emit("join", {room:false});
+    }
+    else{
+        room = params.get("room");
+        shareLink = window.location.href + "?room="+room;
+        socket.emit("join", {room:room});
+        document.getElementById("shareText").innerHTML = "Room: " + room
+    }
+})
+
 var ships = [];
 var place = [5, 5, 0, 2];
-var sunk = [false, false, false, false, false];
-var enemySunk = [false, false, false, false, false];
+var sunk = ["Destroyer", "Submarine", "Cruiser", "Battleship", "Carrier"];
+var enemySunk = ["Destroyer", "Submarine", "Cruiser", "Battleship", "Carrier"];
 var lastHit = [0, 0];
 var enemyReady = false;
 
 var isTurn = false;
 var first = null;
+var playerStats = "";
+var enemyStats = "";
 
 var topGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
 var bottomGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
 const rots = [[1, 0], [0, 1], [-1, 0], [0,-1]];
-const bottomColors = ["#33AAFF", "#AAAAAA", "#FF0000", "#FFFFFF"];
-const topColors = ["#CCCCCC", "#FFFFFF", "#FF0000"]
+const bottomColors = ["#33AAFFAA", "#AAAAAA", "#FF0000", "#FFFFFF"];
+const topColors = ["#CCCCCCAA", "#FFFFFF", "#FF0000"];
 
 function renderGrid(){
-    if (first != null){
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = "#111111";
-        context.fillRect(canvas.width, canvas.height, 0, 0);
-    	tileWidth = canvas.width / 10;
-    	tileHeight = canvas.height / 21;
-        const fontSize = tileWidth / 1.5;
-        context.font = fontSize + 'px serif';
-    	for (var y = 0; y < 10; y++){
-    		for (var x = 0; x < 10; x++){
-    			context.beginPath();
-                context.fillStyle = topColors[topGrid[y][x]];
-    		    context.strokeStyle = "#000000";
-                context.fillRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
-    			context.strokeRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
-    			context.stroke();
-    		}
-    	}
-        for (var y = 11; y < 21; y++){
-    		for (var x = 0; x < 10; x++){
-    			context.beginPath();
-                context.fillStyle = bottomColors[bottomGrid[y-11][x]];
-    		    context.strokeStyle = "#000000";
-    			context.fillRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
-    			context.strokeRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
-    			context.stroke();
-    		}
-    	}
-        for (var j = 0; j < place[3]; j++){
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#111111";
+    context.fillRect(canvas.width, canvas.height, 0, 0);
+    tileWidth = canvas.width / 10;
+    tileHeight = canvas.height / 21;
+    const fontSize = tileWidth / 1.5;
+    context.font = fontSize + 'px serif';
+    for (var y = 0; y < 10; y++){
+        for (var x = 0; x < 10; x++){
             context.beginPath();
-    		if (range(0,10).indexOf(place[0]+(j*rots[place[2]][0]) != -1 && range(0,10).indexOf(place[1]+(j*rots[place[2]][1]))) != -1){
-                context.fillStyle = "#FF00FF";
-                if (ships.length < 5){
-                    context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (11+place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
-                }
-                else{
-                    context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
-                }
-                context.stroke();
-    		}
+            context.fillStyle = topColors[topGrid[y][x]];
+            context.strokeStyle = "#000000";
+            context.fillRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
+            context.strokeRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
+            context.stroke();
         }
-        document.getElementById("test").innerHTML = `Ships sunk: ${sunk} <br>Enemy ships sunk: ${enemySunk} <br>Enemy Ready: ${enemyReady}<br>Is turn: ${isTurn}`;
+    }
+    for (var y = 11; y < 21; y++){
+        for (var x = 0; x < 10; x++){
+            context.beginPath();
+            context.fillStyle = bottomColors[bottomGrid[y-11][x]];
+            context.strokeStyle = "#000000";
+            context.fillRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
+            context.strokeRect(x*tileWidth, y*tileHeight, tileWidth, tileHeight);
+            context.stroke();
+        }
+    }
+    if ((isTurn || ships.length < 5) && enemyJoined && won==null)
+    for (var j = 0; j < place[3]; j++){
+        context.beginPath();
+        if (range(0,10).indexOf(place[0]+(j*rots[place[2]][0]) != -1 && range(0,10).indexOf(place[1]+(j*rots[place[2]][1]))) != -1){
+            context.fillStyle = "#FF00FF77";
+            if (ships.length < 5){
+                context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (11+place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
+            }
+            else{
+                context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
+            }
+            context.stroke();
+        }
+    }
+    playerStats = "Your Ships:<br>";
+    for (var i of sunk){
+        playerStats += (i?i:"Sunk!") + "<br>"
+    }
+        
+    enemyStats = "Enemy's Ships:<br>";
+    for (var i of enemySunk){
+        enemyStats += (i?i:"Sunk!") + "<br>";
+    }
+
+    if (ships.length == 5 && enemyReady){
+        if (isTurn){
+            playerStats += "Your Turn!";
+        } 
+        else {
+            enemyStats += "Enemy's Turn!";
+        }
+    }
+    else{
+        if (enemyReady){
+            enemyStats += "Enemy Ships Placed!"
+        }
+        else{
+            enemyStats += "Waiting for enemy to place ships..."
+        }
+    }
+    if(enemyJoined){
+        document.getElementById("player").innerHTML = playerStats;
+        document.getElementById("enemy").innerHTML = enemyStats;
     }
 }
+
+renderGrid();
 
 document.onkeydown = keyPress;
 document.onmousemove = mouseMove;
@@ -78,10 +129,10 @@ document.onmousedown = click;
 
 function mouseMove(e){
     mousePos = {
-		x: e.clientX - bounding.left,
+		x: e.clientX - leftBound,
 		y: e.clientY - bounding.top
-	}
-    if (first != null){
+	};
+    if (enemyJoined && won == null){
         if (ships.length < 5){
             if (mousePos.x >= 0 && mousePos.x <= canvas.width && mousePos.y >= canvas.height/(21/11) && mousePos.y  <=     canvas.height) {
                 place[0] = Math.floor(mousePos.x * (10 / canvas.width));
@@ -101,9 +152,8 @@ function mouseMove(e){
 }
 
 function keyPress(e){
-    if (e.key=="r"){
-        
-        place[2] = (place[2] + 1) % 4
+    if (e.key=="r" && won == null && first != null){
+        place[2] = (place[2] + 1) % 4;
         renderGrid();
     }
 }
@@ -111,13 +161,13 @@ function keyPress(e){
 function click(e){
 	if (e.button == 0){
 		mousePos = {
-			x: Math.floor((e.clientX - bounding.left) * (10 / canvas.width)),
+			x: Math.floor((e.clientX - leftBound) * (10 / canvas.width)),
 			y: Math.floor((e.clientY - bounding.top) * (21 / canvas.height))
 		}
-		if (ships.length < 5 && isTurn){
+		if (ships.length < 5 && enemyJoined && won == null){
 			var tempShip = []
 			for (var j = 0; j < place[3]; j++){
-				tempShip.push([place[0]+(j*rots[place[2]][0]), place[1]+(j*rots[place[2]][1])])
+				tempShip.push([place[0]+(j*rots[place[2]][0]), place[1]+(j*rots[place[2]][1])]);
 			}
 			var passed = true;
 			for (var i of tempShip){
@@ -143,7 +193,7 @@ function click(e){
 				renderGrid(topGrid, bottomGrid, context);
 			}
 		}
-        else if(mousePos.y < 11 && isTurn){
+        else if(mousePos.y < 11 && isTurn && enemyReady && topGrid[mousePos.y][mousePos.x] == 0 && won == null){
             sendTurn(mousePos.x, mousePos.y);
             lastHit = [mousePos.x, mousePos.y];
             renderGrid();
@@ -154,7 +204,7 @@ function click(e){
 function range(start, end){
 	var out = []
 	for (var i = start; i < end; i++){
-		out.push(i)
+		out.push(i);
 	}
 	return out;
 }
@@ -163,14 +213,26 @@ function hit(x, y){
     var hit = bottomGrid[y][x] == 1
     if (hit){
         bottomGrid[y][x] = 2;
-        console.log(JSON.stringify([x,y]))
         for (var i = 0; i < ships.length; i++){
             for(var j = 0; j < ships[i].length; j++){
                 if (JSON.stringify(ships[i][j]) == JSON.stringify([x,y])){
                     ships[i].splice(j,1);
-                    console.log(ships[i].length)
                     if (ships[i].length == 0){
-                        sunk[i] = true;
+                        sunk[i] = false;
+                        if (sunk.every(e=>!e)){
+                            isTurn = false;
+                            won = false;
+                            place[3] = 0;
+                            renderGrid();
+                            document.getElementById("player").innerHTML = "You Lost.";
+                            document.getElementById("enemy").innerHTML = "You Lost.";
+                        }
+                        else{
+                            renderGrid();
+                        }
+                    }
+                    else{
+                        renderGrid();
                     }
                 }
             }
@@ -178,64 +240,79 @@ function hit(x, y){
     }
     else if(bottomGrid[y][x] == 0){
         bottomGrid[y][x] = 3;
+        renderGrid();
     }
-    renderGrid();
-    return {"hit": hit, "sunk": sunk}
+    return {hit: hit, sunk: sunk, room:room};
 }
 
 function sendReady(){
-    socket.emit("ready", "ready")
+    socket.emit("ready", room);
 }
 
 function sendTurn(x, y){
-    socket.emit("turn", JSON.stringify([x, y]))
+    socket.emit("turn", {coords: [x, y], room: room});
     isTurn = false;
 }
 
 
 socket.on("start", function (data){
     if (first == null){
-        data = JSON.parse(data);
-        console.log(data.turn);
         first = !!data.turn;
         if (first){
-            document.getElementById("test").innerHTML = "Waiting on opponent...";
+            document.getElementById("player").innerHTML = "Waiting on opponent...";
         }
             
         else{ 
-            document.getElementById("test").innerHTML = "Place Your Ships!";
+            document.getElementById("player").innerHTML = "Place Your Ships!";
+            enemyJoined = true;
             renderGrid();
         }
     }
     else{
-        document.getElementById("test").innerHTML = "Place Your Ships!";
+        enemyJoined = true;
+        document.getElementById("player").innerHTML = "Place Your Ships!";
         renderGrid();
+    }
+    if (!room){
+        room = data.room;
+        shareLink = window.location.href + "?room=" + room;
+        document.getElementById("shareText").innerHTML = "Room: " + room
     }
 })
 
 socket.on("ready", function (data){
-    console.log("ready recieved, length:" + ships.length)
+    enemyReady = true;
     if (ships.length == 5){
         isTurn = first;
+        renderGrid();
     }
-    enemyReady = true;
 })
 
 socket.on("turn", function (data) {
-    var coords = JSON.parse(data);
-    socket.emit("result", JSON.stringify(hit(coords[0], coords[1])));
     isTurn = true;
+    socket.emit("result", hit(data.coords[0], data.coords[1]));
+    renderGrid();
 })
 
 socket.on("result", function (data){
-    data = JSON.parse(data);
     if (data.hit){
         topGrid[lastHit[1]][lastHit[0]] = 2;
     }
     else{
         topGrid[lastHit[1]][lastHit[0]] = 1;
     }
-    console.log(data.hit)
     enemySunk = data.sunk;
     renderGrid();
+    if (enemySunk.every(e=>!e)){
+        isTurn = false;
+        won = true;
+        place[3] = 0;
+        renderGrid();
+        document.getElementById("player").innerHTML = "You Won!";
+        document.getElementById("enemy").innerHTML = "You Won!";
+    }
+})
+
+socket.on("checkConnected", function(){
+    socket.emit("ack")
 })

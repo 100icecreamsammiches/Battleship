@@ -1,5 +1,6 @@
 body{
     background-image: url('background.jpg');
+    /* Image obtained from https://wallpaperaccess.com/navy-ship */
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-size: 100% 100%;
@@ -25,13 +26,13 @@ canvas {
     color: white;
     position: absolute; 
     top:10px; 
-    font-size: 20px;
+    font-size: 2vw;
     text-align: center;
     font-family: Verdana, sans-serif;
 }
 
 .home{
-    font-size: 40px;
+    font-size: 3vw;
     text-align: left;
     font-family: Verdana, sans-serif;
 }
@@ -43,5 +44,5 @@ canvas {
 #shareButton{
     color: black;
     font-family: Verdana;
-    font-size: 100%;
+    font-size: 2vw;
 }

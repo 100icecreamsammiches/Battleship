@@ -14,7 +14,7 @@
         <button class="home" type="button" onclick="createRoom()">Play Battleship!</button>
         <br><br>
         <input class="home" type="text" id="join">
-        <button class="home" type="button" onclick="window.location.href += '/play?room=' + document.getElementById('join').value">Create/Join</button>
+        <button id="createRoom" class="home" type="button" onclick="window.location.href += 'play?room=' + document.getElementById('join').value">Create/Join</button>
         <br><br>
         <button id="find" class="home" type="button" onclick="getRoom()">Find Room</button>
     </form>

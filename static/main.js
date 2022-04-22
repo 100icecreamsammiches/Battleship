@@ -1,21 +1,39 @@
+//Basic document details
 const canvas = document.getElementById("main-canvas");
 const context = canvas.getContext("2d");
 var bounding = canvas.getBoundingClientRect();
 var room = false;
-var enemyJoined = false;
+var socket = io({"forceNew": true});
+var shareLink = window.location.href
 
+//Graphics and formatting details
 canvas.width = window.innerHeight * .45;
 canvas.height = window.innerHeight * .9;
 canvas.style.marginLeft = "auto";
 canvas.style.marginRight = "auto";
 var params = new URLSearchParams(window.location.search);
 var leftBound = (window.innerWidth / 2) - (canvas.width/2);
+const rots = [[1, 0], [0, 1], [-1, 0], [0,-1]];
+const bottomColors = ["#33AAFFAA", "#AAAAAA", "#FF0000", "#FFFFFF"];
+const topColors = ["#CCCCCCAA", "#FFFFFF", "#FF0000"];
+
+//Game Data
+var ships = [];
+var place = [5, 5, 0, 2];
+var sunk = ["Destroyer", "Submarine", "Cruiser", "Battleship", "Carrier"];
+var enemySunk = ["Destroyer", "Submarine", "Cruiser", "Battleship", "Carrier"];
+var lastHit = [0, 0];
+var enemyJoined = false;
+var enemyReady = false;
+var isTurn = false;
+var first = null;
 var won = null;
+var playerStats = "";
+var enemyStats = "";
+var topGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
+var bottomGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
 
-var socket = io({"forceNew": true});
-
-var shareLink = window.location.href
-
+//Connect to the server and room
 socket.on("connect", function (){
     if (!params.has("room")){
         socket.emit("join", {room:false});
@@ -28,24 +46,16 @@ socket.on("connect", function (){
     }
 })
 
-var ships = [];
-var place = [5, 5, 0, 2];
-var sunk = ["Destroyer", "Submarine", "Cruiser", "Battleship", "Carrier"];
-var enemySunk = ["Destroyer", "Submarine", "Cruiser", "Battleship", "Carrier"];
-var lastHit = [0, 0];
-var enemyReady = false;
+//Creates a list of numbers from start to end
+function range(start, end){
+	var out = []
+	for (var i = start; i < end; i++){
+		out.push(i);
+	}
+	return out;
+}
 
-var isTurn = false;
-var first = null;
-var playerStats = "";
-var enemyStats = "";
-
-var topGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
-var bottomGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
-const rots = [[1, 0], [0, 1], [-1, 0], [0,-1]];
-const bottomColors = ["#33AAFFAA", "#AAAAAA", "#FF0000", "#FFFFFF"];
-const topColors = ["#CCCCCCAA", "#FFFFFF", "#FF0000"];
-
+//Draws both grids using game data
 function renderGrid(){
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = "#111111";
@@ -54,6 +64,8 @@ function renderGrid(){
     tileHeight = canvas.height / 21;
     const fontSize = tileWidth / 1.5;
     context.font = fontSize + 'px serif';
+
+    //Draws the top grid
     for (var y = 0; y < 10; y++){
         for (var x = 0; x < 10; x++){
             context.beginPath();
@@ -64,6 +76,8 @@ function renderGrid(){
             context.stroke();
         }
     }
+
+    //Draws the bottom grid
     for (var y = 11; y < 21; y++){
         for (var x = 0; x < 10; x++){
             context.beginPath();
@@ -74,20 +88,25 @@ function renderGrid(){
             context.stroke();
         }
     }
-    if ((isTurn || ships.length < 5) && enemyJoined && won==null)
-    for (var j = 0; j < place[3]; j++){
-        context.beginPath();
-        if (range(0,10).indexOf(place[0]+(j*rots[place[2]][0]) != -1 && range(0,10).indexOf(place[1]+(j*rots[place[2]][1]))) != -1){
-            context.fillStyle = "#FF00FF77";
-            if (ships.length < 5){
-                context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (11+place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
+
+    //Draws the highlighted space if applicable
+    if ((isTurn || ships.length < 5) && enemyJoined && won==null){
+        for (var j = 0; j < place[3]; j++){
+            context.beginPath();
+            if (range(0,10).indexOf(place[0]+(j*rots[place[2]][0]) != -1 && range(0,10).indexOf(place[1]+(j*rots[place[2]][1]))) != -1){
+                context.fillStyle = "#FF00FF77";
+                if (ships.length < 5){
+                    context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (11+place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
+                }
+                else{
+                    context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
+                }
+                context.stroke();
             }
-            else{
-                context.fillRect((place[0]+(j*rots[place[2]][0]))*tileWidth, (place[1]+(j*rots[place[2]][1]))*tileHeight, tileWidth, tileHeight);
-            }
-            context.stroke();
         }
     }
+
+    //Updates Status information in the corners
     playerStats = "Your Ships:<br>";
     for (var i of sunk){
         playerStats += (i?i:"Sunk!") + "<br>"
@@ -106,6 +125,7 @@ function renderGrid(){
             enemyStats += "Enemy's Turn!";
         }
     }
+
     else{
         if (enemyReady){
             enemyStats += "Enemy Ships Placed!"
@@ -114,6 +134,7 @@ function renderGrid(){
             enemyStats += "Waiting for enemy to place ships..."
         }
     }
+
     if(enemyJoined){
         document.getElementById("player").innerHTML = playerStats;
         document.getElementById("enemy").innerHTML = enemyStats;
@@ -122,10 +143,10 @@ function renderGrid(){
 
 renderGrid();
 
+//Mouse Functions
 document.onkeydown = keyPress;
 document.onmousemove = mouseMove;
 document.onmousedown = click;
-
 
 function mouseMove(e){
     mousePos = {
@@ -135,6 +156,7 @@ function mouseMove(e){
     if (enemyJoined && won == null){
         if (ships.length < 5){
             if (mousePos.x >= 0 && mousePos.x <= canvas.width && mousePos.y >= canvas.height/(21/11) && mousePos.y  <=     canvas.height) {
+                //Draws highlighted ship space
                 place[0] = Math.floor(mousePos.x * (10 / canvas.width));
                 place[1] = Math.floor(mousePos.y * (21 / canvas.height)) - 11;
                 renderGrid();
@@ -142,7 +164,7 @@ function mouseMove(e){
         }
         else{
             if (mousePos.x >= 0 && mousePos.x <= canvas.width && mousePos.y <= canvas.height/(21/10) && mousePos.y  >=     0){
-                
+                //Draws targeted space
                 place[0] = Math.floor(mousePos.x * (10 / canvas.width));
                 place[1] = Math.floor(mousePos.y * (21 / canvas.height));
                 renderGrid();
@@ -151,6 +173,7 @@ function mouseMove(e){
     }
 }
 
+//Rotates the ship placement
 function keyPress(e){
     if (e.key=="r" && won == null && first != null){
         place[2] = (place[2] + 1) % 4;
@@ -165,6 +188,7 @@ function click(e){
 			y: Math.floor((e.clientY - bounding.top) * (21 / canvas.height))
 		}
 		if (ships.length < 5 && enemyJoined && won == null){
+            //Checks that a ship can be placed
 			var tempShip = []
 			for (var j = 0; j < place[3]; j++){
 				tempShip.push([place[0]+(j*rots[place[2]][0]), place[1]+(j*rots[place[2]][1])]);
@@ -175,6 +199,8 @@ function click(e){
 					passed = false;
 				}
 			}
+
+            //Places the ship
 			if (passed){
 				ships.push(tempShip);
 				for (var i of tempShip){
@@ -193,6 +219,8 @@ function click(e){
 				renderGrid(topGrid, bottomGrid, context);
 			}
 		}
+
+        //Attempts to fire at the enemy
         else if(mousePos.y < 11 && isTurn && enemyReady && topGrid[mousePos.y][mousePos.x] == 0 && won == null){
             sendTurn(mousePos.x, mousePos.y);
             lastHit = [mousePos.x, mousePos.y];
@@ -201,24 +229,23 @@ function click(e){
 	}
 }
 
-function range(start, end){
-	var out = []
-	for (var i = start; i < end; i++){
-		out.push(i);
-	}
-	return out;
-}
-
+//Checks a hit from the enemy against the bottom grid
 function hit(x, y){
     var hit = bottomGrid[y][x] == 1
     if (hit){
         bottomGrid[y][x] = 2;
+
+        //Hits a ship
         for (var i = 0; i < ships.length; i++){
             for(var j = 0; j < ships[i].length; j++){
                 if (JSON.stringify(ships[i][j]) == JSON.stringify([x,y])){
                     ships[i].splice(j,1);
+
                     if (ships[i].length == 0){
+                        //Sinks a ship if hit enough times
                         sunk[i] = false;
+
+                        //Checks if the player has lost
                         if (sunk.every(e=>!e)){
                             isTurn = false;
                             won = false;
@@ -238,23 +265,18 @@ function hit(x, y){
             }
         }
     }
+
+    //Misses a ship
     else if(bottomGrid[y][x] == 0){
         bottomGrid[y][x] = 3;
         renderGrid();
     }
+
+    //Returns results
     return {hit: hit, sunk: sunk, room:room};
 }
 
-function sendReady(){
-    socket.emit("ready", room);
-}
-
-function sendTurn(x, y){
-    socket.emit("turn", {coords: [x, y], room: room});
-    isTurn = false;
-}
-
-
+//Upon joining the game, checks what the game state is
 socket.on("start", function (data){
     if (first == null){
         first = !!data.turn;
@@ -273,6 +295,8 @@ socket.on("start", function (data){
         document.getElementById("player").innerHTML = "Place Your Ships!";
         renderGrid();
     }
+
+    //Sets the room and share link
     if (!room){
         room = data.room;
         shareLink = window.location.href + "?room=" + room;
@@ -280,6 +304,12 @@ socket.on("start", function (data){
     }
 })
 
+//Says that all ships are placed
+function sendReady(){
+    socket.emit("ready", room);
+}
+
+//Confirms that the opponent has placed all ships
 socket.on("ready", function (data){
     enemyReady = true;
     if (ships.length == 5){
@@ -288,12 +318,20 @@ socket.on("ready", function (data){
     }
 })
 
+//Sends a shot
+function sendTurn(x, y){
+    socket.emit("turn", {coords: [x, y], room: room});
+    isTurn = false;
+}
+
+//On recieving a hit, checks the results and sends them to the opponent
 socket.on("turn", function (data) {
     isTurn = true;
     socket.emit("result", hit(data.coords[0], data.coords[1]));
     renderGrid();
 })
 
+//Updates the result of your shot using the enemies data
 socket.on("result", function (data){
     if (data.hit){
         topGrid[lastHit[1]][lastHit[0]] = 2;
@@ -313,6 +351,8 @@ socket.on("result", function (data){
     }
 })
 
+
+//Keep alive ping
 socket.on("checkConnected", function(){
     socket.emit("ack")
 })

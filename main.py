@@ -6,17 +6,19 @@ import logging
 
 async_mode = None
 
-full = True
-previewed = False;
-
+#Sets up flask and socketio server
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode=async_mode)
+socketio = SocketIO(app, async_mode=async_mode, ping_interval=(5,5))
+
+#Disables logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+#List of connected rooms and users
 rooms = {}
 users = {}
 
+#Website pages
 @app.route("/play")
 def main():
     return render_template("play.html", sync_mode=socketio.async_mode)
@@ -25,10 +27,7 @@ def main():
 def home():
     return render_template("home.html", sync_mode=socketio.async_mode)
 
-@socketio.event
-def joined():
-    print("hello")
-
+#Either creates a room or puts the user in one
 @socketio.event
 def join(data):
     if not data["room"]:
@@ -49,6 +48,8 @@ def join(data):
         emit("start", {"turn": rooms[data["room"]] % 2 == 1, "room": data["room"]}, room=data["room"])
         users[request.sid] = data["room"]
 
+
+#Closes disconnected rooms and puts the user in an open one
 @socketio.event
 def requestRoom():
     purgeConnections()
@@ -61,25 +62,25 @@ def requestRoom():
 def createRoom():
     emit("found", secrets.token_urlsafe(6))
 
+#Passes game data between players
 @socketio.event
 def turn(data):
-    room = data["room"]
-    emit("turn", data, to=room, include_self=False)
+    emit("turn", data, to=data["room"], include_self=False)
     
 @socketio.event
 def result(data):
-    room = data["room"]
-    emit("result", data, to=room, include_self=False)
+    emit("result", data, to=data["room"], include_self=False)
 
 @socketio.event
 def win(data):
-    room = data["room"]
-    emit("win", data, to=room, include_self=False)
+    emit("win", data, to=data["room"], include_self=False)
 
 @socketio.event
 def ready(data):
     emit("ready", data, to=data, include_self=False)
 
+
+#Closes rooms when someone disconnects
 @socketio.event
 def disconnect():
     print("Someone disconnected")
@@ -90,14 +91,16 @@ def disconnect():
             rooms.pop(users[request.sid])
         users.pop(request.sid)
 
+#Keep alive pong
 @socketio.event
 def ack():
     pass
 
+#Checks that all users are connected
 def purgeConnections():
     for user in users.keys():
         emit("checkConnected", to=user)
         
-
+#Hosts website
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0")

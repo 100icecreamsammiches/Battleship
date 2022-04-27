@@ -3,7 +3,7 @@ function getRoom(){
     document.getElementById("find").innerHTML = "Finding...";
     var socket = io({"forceNew": true});
     socket.on("found", function(room){
-        window.location.href += 'play?room=' + room;
+        window.location.href += 'play#' + room;
     })
     socket.emit("requestRoom");
 }
@@ -12,12 +12,15 @@ function getRoom(){
 function createRoom(){
     var socket = io({"forceNew": true});
     socket.on("found", function(room){
-        window.location.href += 'play?room=' + room;
+        window.location.href += 'play#' + room;
     })
     socket.emit("createRoom");
 }
 
 document.onkeydown = keyPress
+window.addEventListener("DOMContentLoaded", ()=>{
+    document.getElementById("play").addEventListener("click", createRoom)
+})
 
 //Makes pressing enter on the text field redirect properly
 function keyPress(e){

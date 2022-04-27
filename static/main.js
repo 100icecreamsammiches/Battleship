@@ -35,12 +35,13 @@ var bottomGrid = JSON.parse(JSON.stringify(Array(10).fill(Array(10).fill(0))));
 
 //Connect to the server and room
 socket.on("connect", function (){
-    if (!params.has("room")){
+    hash = window.location.hash
+    if (hash == "" || hash == "#"){
         socket.emit("join", {room:false});
     }
     else{
-        room = params.get("room");
-        shareLink = window.location.href + "?room="+room;
+        room = hash.slice(1,hash.length)
+        shareLink = window.location.href + "#"+ room;
         socket.emit("join", {room:room});
         document.getElementById("shareText").innerHTML = "Room: " + room
     }
@@ -299,8 +300,9 @@ socket.on("start", function (data){
     //Sets the room and share link
     if (!room){
         room = data.room;
-        shareLink = window.location.href + "?room=" + room;
+        shareLink = window.location.href + "#" + room;
         document.getElementById("shareText").innerHTML = "Room: " + room
+        window.location.hash = room
     }
 })
 

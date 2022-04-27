@@ -110,20 +110,20 @@ function renderGrid(){
     //Updates Status information in the corners
     playerStats = "Your Ships:<br>";
     for (var i of sunk){
-        playerStats += (i?i:"Sunk!") + "<br>"
+        playerStats += (i?i:'<span style="color: red">Sunk!</span>') + "<br>"
     }
         
     enemyStats = "Enemy's Ships:<br>";
     for (var i of enemySunk){
-        enemyStats += (i?i:"Sunk!") + "<br>";
+        enemyStats += (i?i:'<span style="color: red">Sunk!</span>') + "<br>";
     }
 
     if (ships.length == 5 && enemyReady){
         if (isTurn){
-            playerStats += "Your Turn!";
+            playerStats += '<span style="color: yellow">Your Turn!</span>';
         } 
         else {
-            enemyStats += "Enemy's Turn!";
+            enemyStats += '<span style="color: yellow">Enemy\'s turn!</span>';
         }
     }
 
@@ -233,10 +233,10 @@ function click(e){
 //Checks a hit from the enemy against the bottom grid
 function hit(x, y){
     var hit = bottomGrid[y][x] == 1
+    
+    //Hits a ship
     if (hit){
         bottomGrid[y][x] = 2;
-
-        //Hits a ship
         for (var i = 0; i < ships.length; i++){
             for(var j = 0; j < ships[i].length; j++){
                 if (JSON.stringify(ships[i][j]) == JSON.stringify([x,y])){
@@ -252,8 +252,8 @@ function hit(x, y){
                             won = false;
                             place[3] = 0;
                             renderGrid();
-                            document.getElementById("player").innerHTML = "You Lost.";
-                            document.getElementById("enemy").innerHTML = "You Lost.";
+                            document.getElementById("player").innerHTML = '<span style="color: red">You Lost.</span>';
+                            document.getElementById("enemy").innerHTML = '<span style="color: red">You Lost.</span>';
                         }
                         else{
                             renderGrid();
@@ -330,7 +330,6 @@ function sendTurn(x, y){
 socket.on("turn", function (data) {
     isTurn = true;
     socket.emit("result", hit(data.coords[0], data.coords[1]));
-    renderGrid();
 })
 
 //Updates the result of your shot using the enemies data
@@ -348,8 +347,8 @@ socket.on("result", function (data){
         won = true;
         place[3] = 0;
         renderGrid();
-        document.getElementById("player").innerHTML = "You Won!";
-        document.getElementById("enemy").innerHTML = "You Won!";
+        document.getElementById("player").innerHTML = '<span style="color: yellow">You Won!</span>';
+        document.getElementById("enemy").innerHTML = '<span style="color: yellow">You Won!</span>';
     }
 })
 

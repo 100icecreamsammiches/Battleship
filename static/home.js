@@ -5,6 +5,9 @@ function getRoom(){
     socket.on("found", function(room){
         window.location.href += 'play#' + room;
     })
+    socket.on("noneFound", function(room){
+        document.getElementById("find").innerHTML = "No Open Rooms";
+    })
     socket.emit("requestRoom");
 }
 

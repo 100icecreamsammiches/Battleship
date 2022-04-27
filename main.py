@@ -52,11 +52,11 @@ def join(data):
 #Closes disconnected rooms and puts the user in an open one
 @socketio.event
 def requestRoom():
-    purgeConnections()
     for room in rooms.keys():
         if rooms[room] == 1:
-            emit("found", room)
+            emit("found", room, to=request.sid)
             return
+    emit("noneFound", to=request.sid)
 
 @socketio.event
 def createRoom():
@@ -90,16 +90,6 @@ def disconnect():
         if rooms[users[request.sid]] < 1:
             rooms.pop(users[request.sid])
         users.pop(request.sid)
-
-#Keep alive pong
-@socketio.event
-def ack():
-    pass
-
-#Checks that all users are connected
-def purgeConnections():
-    for user in users.keys():
-        emit("checkConnected", to=user)
         
 #Hosts website
 if __name__ == "__main__":
